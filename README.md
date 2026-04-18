@@ -64,3 +64,7 @@ const char* city     = "Mankato,MN,US"; // Change to your city
 
 An OpenWeatherMap API key can be obtained for free at [openweathermap.org](https://openweathermap.org/api).
 
+> **Note:** City names longer than ~8 characters may overlap with the time display on the OLED. 
+> Short city names like "Mankato" work best.If your city name is long, consider using a 
+> nearby shorter-named city that shares the same weather data.
+
