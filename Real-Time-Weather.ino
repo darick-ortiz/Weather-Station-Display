@@ -1,3 +1,4 @@
+// --------------------- BITMAPS ----------------------------------------
 // 'weather_sunny_16x16'
 const unsigned char bitmapSunny [] PROGMEM = {
   0x00, 0x00, 0x01, 0x80, 0x21, 0x84, 0x40, 0x02, 0x07, 0xe0, 0x08, 0x10, 0x10, 0x08, 0x10, 0x08,
@@ -51,7 +52,7 @@ const unsigned char* allBitmapArray[7] = {
   bitmapCloud
 };
 
-// ------------------ Includes --------------------------
+// ----------------------------- Includes ----------------------------------
 #include <DHT.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
@@ -61,8 +62,7 @@ const unsigned char* allBitmapArray[7] = {
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <WiFiUDP.h>
-#include <WiFiUDP.h>
-// --------------------- Defines ------------------------
+// ------------------------------ Definitions --------------------------------
 #define DHTPIN D5
 #define DHTTYPE DHT11
 #define SCREEN_WIDTH 128
@@ -80,14 +80,15 @@ String currentCity = "";
 String weatherCondition = "";
 String currentCondition = "";
 
-// --------- Personal ---------------
+// ------------------------------- Personal --------------------------------
 const char* ssid = "SSID"; 
 const char* password = "PSWRD";
-const char* apiKey = "KEY";
+const char* apiKey = "API";
 const char* city = "Mankato,MN,US";
-// ----------------- Functions ------------------
+// ------------------------------- Functions -------------------------------
 
-void connectWiFi(){
+//  Connect to wifi and lets know if successful.
+void connectWiFi(){  
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
   while (WiFi.status() != WL_CONNECTED){
@@ -97,8 +98,22 @@ void connectWiFi(){
   Serial.println("\nConnected.");
 }
 
+// Obtain a big weather string value from Open Weather Map website
 String getWeather(){
-  if(WiFi.status() != WL_CONNECTED) return "";
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.println("WiFi lost, reconnecting...");
+    WiFi.disconnect();
+    WiFi.begin(ssid, password);
+
+    int attempts = 0;
+    while(WiFi.status() != WL_CONNECTED && attempts < 20){
+      delay(500);
+      Serial.println("Reconnect Failed.");
+      return "";
+    }
+    Serial.println("Reconnected.");
+
+  }
 
   WiFiClient client;
   HTTPClient http;
@@ -123,6 +138,7 @@ String getWeather(){
   return weatherValue;
 }
 
+// Draws all the images and the values to go with them
 void screenDrawer(String weatherCondition, float temp, String currentTime, String cityName){
   display.clearDisplay();
   display.setTextSize(1);
@@ -130,14 +146,12 @@ void screenDrawer(String weatherCondition, float temp, String currentTime, Strin
 
   // Clock drawer -- YELLOW PART OF OLED --
   display.drawBitmap(0, 0, bitmapClock, 16, 16, 1);
-  display.setCursor(23, 4);
+  display.setCursor(20, 4);
   display.print(currentTime); // HH:MM
 
   // City name
   display.setCursor(75, 4);
-  display.setTextSize(2);
   display.print(currentCity);
-  display.setTextSize(1);
 
   // Temperature drawer -- BLUE PART OF OLED STARTS --
   display.drawBitmap(2, 20, bitmapTemp, 16, 16, 1); // Draw thermometer
@@ -158,22 +172,21 @@ void screenDrawer(String weatherCondition, float temp, String currentTime, Strin
   display.drawBitmap(2, 42, selectedIcon, 16, 16, 1);
   display.setCursor(25,46);
   display.print(weatherCondition);
-
   display.display();
 }
 
-
+// Filter so that we only grab the temp, weather, and city name from the Json
 void filterWeather(String jsonResponse){
   // Filtering
-  StaticJsonDocument<128> filter;
-  filter["main"]["temp"] = true;
-  filter["weather"][0]["main"] = true;
-  filter["name"] = true;
+  JsonDocument filter;
+  filter["main"]["temp"] = true; // temp 
+  filter["weather"][0]["main"] = true; // weather
+  filter["name"] = true; // city
 
   // Doc to hold values
-  DynamicJsonDocument doc(1024);
+  JsonDocument doc;
 
-  // Deserialize
+  // Deserialize so we can turn into data
   DeserializationError error = deserializeJson(doc, jsonResponse, DeserializationOption::Filter(filter));
 
   if(error){
@@ -194,15 +207,15 @@ void filterWeather(String jsonResponse){
 unsigned long lastWeatherUpdate = 0; // 
 const unsigned long weatherInterval = 600000; // 10 minutes
 
-
+// ------------------------- Setup --------------------------------------
 void setup() {
   Serial.begin(115200);
   delay(2000);
   connectWiFi();
   Wire.begin(D6, D7); // SDA, SCL
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-  dht.begin();
-  timeClient.begin();
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Start up OLED
+  dht.begin(); // Start up DHT
+  timeClient.begin(); // Start up time
   timeClient.update();
 
   String weather = getWeather();
@@ -210,7 +223,7 @@ void setup() {
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  // ------------- Display Setup --------------------- //
+  // ----------------------- Display Setup ----------------------------------- //
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
@@ -227,16 +240,19 @@ void loop() {
   int hours = timeClient.getHours();
   int minutes = timeClient.getMinutes();
 
+  // turn time from military to standard
+  bool isPM = (hours >= 12);
+
   if(hours > 12){
     hours -=  12;
   } else if (hours == 0){
     hours = 12;
   }
 
-  String hourStr = (hours < 10) ? "0" + String(hours) : String(hours);
+  // combine and format hours + minutes
+  String hourStr = String(hours);
   String minuteStr = (minutes < 10) ? "0" + String(minutes) : String(minutes);
-
-  String currentTime = hourStr + ":" + minuteStr;
+  String currentTime = hourStr + ":" + minuteStr + (isPM ? " PM" : " AM");
   
   // Update weather, 10 min intervals
   if (currentMillis - lastWeatherUpdate >= weatherInterval || lastWeatherUpdate == 0){
@@ -250,7 +266,6 @@ void loop() {
   // Refresh OLED
   screenDrawer(currentCondition, currentTemp, currentTime, currentCity);
 
-  delay(100); // small delay in case of oled flicker
-
-
+  // small delay in case of OLED flicker
+  delay(100); 
 }
