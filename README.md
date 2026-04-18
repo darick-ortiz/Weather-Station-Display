@@ -21,13 +21,10 @@ An IoT weather station built on a Wemos D1 Mini (ESP8266) that displays real-tim
 |---|---|
 | Microcontroller | Wemos D1 Mini (ESP8266) |
 | Display | SSD1306 128x64 OLED |
-| Sensor | DHT11 (reserved for V2) |
 
 **Wiring:**
 - SDA → D6
 - SCL → D7
-- DHT11 → D5
-
 ---
 
 ## Libraries Required
@@ -38,7 +35,6 @@ Install the following libraries via the Arduino Library Manager:
 - `NTPClient`
 - `Adafruit SSD1306`
 - `Adafruit GFX`
-- `DHT sensor library`
 - `ESP8266WiFi` (included with ESP8266 board package)
 - `ESP8266HTTPClient` (included with ESP8266 board package)
 
@@ -68,19 +64,3 @@ const char* city     = "Mankato,MN,US"; // Change to your city
 
 An OpenWeatherMap API key can be obtained for free at [openweathermap.org](https://openweathermap.org/api).
 
----
-
-## V2 Roadmap
-
-- Indoor temperature and humidity display using DHT11
-- Button to toggle between indoor and outdoor screens 
-- Improved layout and screen modes
-
----
-
-## Notes
-
-### v1.0.0
-- Initial working release
-- Displays NTP time, outdoor temperature, weather condition, and city name
-- DHT11 and button pin are initialized but unused, they are reserved for V2
