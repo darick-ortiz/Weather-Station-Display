@@ -41,19 +41,7 @@ const unsigned char bitmapTemp [] PROGMEM = {
 	0x02, 0x40, 0x04, 0x20, 0x09, 0x10, 0x09, 0x10, 0x09, 0x10, 0x09, 0x10, 0x04, 0x20, 0x03, 0xc0
 };
 
-// Array of all bitmaps in case I need later
-const unsigned char* allBitmapArray[7] = {
-	bitmapClock,
-	bitmapLightning,
-	bitmapRain,
-	bitmapSnow,
-	bitmapSunny,
-	bitmapTemp,
-  bitmapCloud
-};
-
 // ----------------------------- Includes ----------------------------------
-#include <DHT.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
@@ -63,21 +51,16 @@ const unsigned char* allBitmapArray[7] = {
 #include <Adafruit_SSD1306.h>
 #include <WiFiUDP.h>
 // ------------------------------ Definitions --------------------------------
-#define DHTPIN D5
-#define DHTTYPE DHT11
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1 
-#define BUTTON_PIN D3
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", -18000, 60000); // Website, Timezone to mankato, sync time 1 minute
-DHT dht(DHTPIN, DHTTYPE);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,&Wire, OLED_RESET);
 
 float currentTemp = 0;
 String currentCity = "";
-String weatherCondition = "";
 String currentCondition = "";
 
 // ------------------------------- Personal --------------------------------
@@ -108,6 +91,10 @@ String getWeather(){
     int attempts = 0;
     while(WiFi.status() != WL_CONNECTED && attempts < 20){
       delay(500);
+      Serial.print(".");
+      attempts++;
+    }
+    if(WiFi.status() != WL_CONNECTED){
       Serial.println("Reconnect Failed.");
       return "";
     }
@@ -146,7 +133,7 @@ void screenDrawer(String weatherCondition, float temp, String currentTime, Strin
 
   // Clock drawer -- YELLOW PART OF OLED --
   display.drawBitmap(0, 0, bitmapClock, 16, 16, 1);
-  display.setCursor(20, 4);
+  display.setCursor(25, 4);
   display.print(currentTime); // HH:MM
 
   // City name
@@ -214,14 +201,8 @@ void setup() {
   connectWiFi();
   Wire.begin(D6, D7); // SDA, SCL
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Start up OLED
-  dht.begin(); // Start up DHT
   timeClient.begin(); // Start up time
   timeClient.update();
-
-  String weather = getWeather();
-  Serial.println(weather);
-
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   // ----------------------- Display Setup ----------------------------------- //
   display.clearDisplay();
